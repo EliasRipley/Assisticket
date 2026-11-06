@@ -1,7 +1,8 @@
-import {captureGwrDocument,schedulesToLegs} from './gwr.js';
+import {captureGwrDocument,schedulesToLegs,dateFromGwrCalendar} from './gwr.js';
 import {isGwrUrl,parseLabelledJourney,validateRequest,DemoGateway} from './core.js';
 const $ = id => document.getElementById(id);
 const gateway = new DemoGateway();
+let capturedForDateCorrection = null;
 const extensionApi = globalThis.browser ?? globalThis.chrome;
 if (extensionApi?.runtime?.id) document.body.classList.add('extension');
 function invalidate() { $('reviewed').checked=false; $('result').textContent=''; $('errors').textContent=''; }
@@ -37,7 +38,20 @@ $('parse').addEventListener('click',()=>{
   if(!legs.length){$('capture-status').textContent='No supported labelled journey found. Enter the trains manually below.';return;}
   $('legs').replaceChildren();legs.forEach(addLeg);$('capture-status').textContent=`Imported ${legs.length} leg(s). Check against your ticket: these train services have not been validated.`;
 });
+function importCaptured(result,date,source) {
+  const legs=schedulesToLegs(result.schedules,date);
+  $('legs').replaceChildren();legs.forEach(addLeg);
+  $('capture-status').textContent=`Imported ${legs.length} train leg(s) from GWR. Departure date ${date} (${source}). Review the details. This is a search result, not a purchased ticket or an assistance booking.`;
+}
+$('apply-date').addEventListener('click',()=>{
+  try {
+    if(!capturedForDateCorrection)throw Error('Capture a GWR journey first.');
+    importCaptured(capturedForDateCorrection,$('journey-date').value,'manually corrected');
+    $('date-correction').open=false;
+  } catch(e){$('capture-status').textContent=e.message;}
+});
 $('capture').addEventListener('click',async()=>{
+  invalidate(); capturedForDateCorrection=null; $('journey-date').value=''; $('date-correction').open=false;
   try {
     if(!extensionApi?.scripting)throw Error('Page capture works inside the installed browser extension. Here, paste journey text or try the example.');
     const [tab]=await extensionApi.tabs.query({active:true,currentWindow:true});
@@ -45,14 +59,13 @@ $('capture').addEventListener('click',async()=>{
     const [{result}]=await extensionApi.scripting.executeScript({target:{tabId:tab.id},func:captureGwrDocument});
     if(!isGwrUrl(result.url))throw Error('The page changed during capture. Return to GWR and try again.');
     if(result.schedules.length) {
-      const legs=schedulesToLegs(result.schedules,$('journey-date').value);
-      $('legs').replaceChildren();legs.forEach(addLeg);
-      $('capture-status').textContent=`Imported ${legs.length} train leg(s) from GWR Route details. Date supplied by you: ${$('journey-date').value}. Check it matches GWR. This is a search result, not a purchased ticket or an assistance booking.`;
+      capturedForDateCorrection=result;
+      importCaptured(result,dateFromGwrCalendar(result.dateEvidence),'read automatically from GWR');
     } else {
       if(result.text){$('source').value=result.text;$('source').closest('details').open=true;}
       throw Error('No visible GWR route tables found. Open Route details via the number in the Changes column, then capture again. Selected text, if any, was copied to the text box.');
     }
-  } catch(e){$('capture-status').textContent=e.message;}
+  } catch(e){$('capture-status').textContent=e.message; if(capturedForDateCorrection)$('date-correction').open=true;}
 });
 $('request').addEventListener('submit',event=>{event.preventDefault();const request=readRequest();if(check(request))$('result').textContent=gateway.submit(request).message;});
 $('export').addEventListener('click',()=>{

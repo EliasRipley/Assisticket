@@ -17,7 +17,7 @@ This is an **unsigned Firefox Nightly extension test build**, not an APK and not
 2. Search a future journey. Paddington → Bristol Temple Meads is a useful first test. A departure at least two hours away allows the mock-submission validation to pass.
 3. On the results page, tap the number under **Changes** for one journey. It opens **Route details**: 0 is direct, 1 has a connection. If the mobile layout hides the column, try Nightly's **Desktop site** option.
 4. Leave Route details open. Open Nightly's **Extensions → Assisticket**.
-5. Enter the exact **departure date shown by GWR**, then tap **Capture GWR route details**.
+5. Tap **Capture GWR route details**. Version 0.4.0 reads the outward date automatically; use date correction only if it cannot read the calendar.
 6. Check every imported train against GWR: stations, date, times and operator. For a connection, there should be one leg per train, including the change station on both legs.
 7. Choose assistance, tick the review checkbox and tap **Simulate assistance request**. It should explicitly say **no assistance was requested or booked**. You do not need to visit payment or sign in.
 

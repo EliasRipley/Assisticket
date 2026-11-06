@@ -14,8 +14,8 @@ See [ANDROID.md](ANDROID.md) for the Firefox Nightly test-build installation and
 2. Open `chrome://extensions`, enable Developer mode, click **Load unpacked**, and select the `extension` folder.
 3. Visit https://www.gwr.com/ and search a journey, for example London Paddington to Bristol Temple Meads. Stop at the search results.
 4. Click the number in the result's **Changes** column to open **Route details**. Zero opens a direct train; one opens a connecting itinerary.
-5. Open Assisticket and enter the **same departure date shown by GWR**. The route tables show times without a complete date, so this version requires you to supply it rather than infer a year.
-6. Click **Capture GWR route details**. Review the imported stations, departure/arrival times, train operators and every connection.
+5. Open Assisticket. It reads the full selected outward date from GWR’s calendar automatically, including the year.
+6. Click **Capture GWR route details**. Review the imported date, stations, departure/arrival times, train operators and every connection. The calendar may open briefly during capture; no travel date is changed.
 7. Choose assistance, tick the review checkbox and simulate. No request is sent. You can also export a reviewed JSON draft.
 
 Reload the extension in `chrome://extensions` after pulling updates. Its popup clears when closed; an exported draft contains journey and assistance information and is not encrypted.
@@ -43,14 +43,14 @@ npm test
 
 For the standalone UI, run `python3 -m http.server 8000` here and open `http://localhost:8000/extension/`. **Try an example** loads an invented itinerary for UI testing. Real page capture requires the installed extension.
 
-Twelve Node tests pass: the original seven core checks plus five GWR adapter checks using the actual observed two-train itinerary, intermediate stops, unsupported formats, missing data and ambiguous dates. Browser inspection verified GWR's selectors and data; the installed extension's capture path still needs a manual Chrome smoke test. No end-to-end booking has been tested.
+Fourteen Node tests pass: the original seven core checks plus seven GWR adapter checks using the actual observed two-train itinerary, intermediate stops, unsupported formats, missing data and ambiguous dates. Browser inspection verified GWR's selectors and data; the installed extension's capture path still needs a manual Chrome smoke test. No end-to-end booking has been tested.
 
 A Playwright UI smoke script is included at `tests/browser.cjs`. It could not run in the build environment because Chromium was absent. Locally, install Playwright (`npm install --no-save playwright`, then `npx playwright install chromium`), start the demo server and run `node tests/browser.cjs`. It checks the demo UI, not extension capture.
 
 ## Current limits
 
 - Supports the observed GWR search-results Route details layout only; checkout and purchase-confirmation pages are not yet supported. Keep Route details open while capturing.
-- Departure date is user supplied. Check it against GWR. Import refuses times crossing midnight; manually entered legs support separate dates and UK daylight-saving checks.
+- Automatic date capture currently supports outward results whose endpoints match the search. It opens GWR’s calendar without selecting a day, reads the selected full date and checks it against the displayed weekday/day/month. If metadata is missing or disagrees, a date correction option appears. Return-date capture remains unsupported. Import refuses times crossing midnight; manually entered legs support separate dates and UK daylight-saving checks.
 - One passenger per draft. Add returns and additional journeys separately. Open returns need a specific train.
 - No station-code/service-ID mapping, timetable validation, seat or wheelchair-space reservation, or connection-accessibility assessment. An eight-minute connection in GWR results is not a guarantee that it meets your assistance needs.
 - Assistance choices are examples, not verified API codes. Submission is simulated and duplicate protection lasts only for the popup session.

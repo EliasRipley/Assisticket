@@ -26,3 +26,13 @@ test('refuses unsupported station transfers and midnight ambiguity',()=>{
  const s=tables();s[1].rows[0][2]='Bristol Temple Meads';assert.throws(()=>schedulesToLegs(s,fixture.journeyDate),/transfer/);
  const night=tables();night[0].rows[0][1]='23:48';assert.throws(()=>schedulesToLegs(night,fixture.journeyDate),/midnight/);
 });
+
+test('reads actual GWR calendar metadata, including its zero-based November month', async()=>{
+ const {dateFromGwrCalendar}=await import('../extension/gwr.js');
+ assert.equal(dateFromGwrCalendar({selected:['2026-10-6'],label:'Fri 6 Nov'}),'2026-11-06');
+ assert.equal(dateFromGwrCalendar({selected:['2027-0-1'],label:'Fri 1 Jan'}),'2027-01-01');
+});
+test('does not silently guess the year or reuse a stale selected date',async()=>{
+ const {dateFromGwrCalendar}=await import('../extension/gwr.js');
+ for(const evidence of [null,{selected:[],label:'Fri 6 Nov'},{selected:['2026-10-6','2026-10-7'],label:'Fri 6 Nov'},{selected:['2026-10-6'],label:'Sat 7 Nov'},{selected:['2026-1-30'],label:'Mon 2 Mar'}])assert.throws(()=>dateFromGwrCalendar(evidence));
+});

@@ -8,7 +8,8 @@ from zipfile import ZIP_DEFLATED, ZipFile
 
 root = Path(__file__).resolve().parents[1]
 source = root / 'extension'
-output = Path(sys.argv[1]).resolve() if len(sys.argv)>1 else root / 'dist' / 'assisticket-android-nightly-0.3.0.zip'
+version = json.loads((source / 'manifest.json').read_text())['version']
+output = Path(sys.argv[1]).resolve() if len(sys.argv)>1 else root / 'dist' / f'assisticket-android-nightly-{version}.zip'
 output.parent.mkdir(parents=True, exist_ok=True)
 manifest = json.loads((source / 'manifest.json').read_text())
 manifest['name'] = 'Assisticket — Android test'
