@@ -2,7 +2,25 @@
 
 Capture real train legs from GWR's public **Route details** screen and review an assistance draft. No ticket purchase is needed to test extraction. Independent project, not affiliated with GWR, RDG or Transreport.
 
-**This version never books assistance.** No account connection or live API calls. Use the official Passenger Assistance service for actual travel.
+**This version never books assistance.** No real account connection or live API calls. Use the official Passenger Assistance service for actual travel.
+
+## One-click booking flow — version 0.6.0
+
+The intended live experience is: install → connect Passenger Assistance once → buy a ticket normally → see “Use your Passenger Assistance?” → Yes sends the purchased itinerary with saved needs, while No dismisses it. Request received and assistance confirmed must remain separate states.
+
+The new **demo** lets you test the account, prompt, Yes/No decision and submission lifecycle with a real GWR search itinerary. It does not detect a completed purchase. It never treats a search result as a purchased ticket and never submits real assistance. Real account linking and automatic confirmation-page detection remain disabled.
+
+1. Install the latest package. For Android Nightly, use the Android build; for desktop Chrome, unzip the Chrome build and load it unpacked.
+2. Connect a fictional sample account once at the top of Assisticket. It is remembered locally.
+3. Search a future GWR journey and open Route details through the Changes column.
+4. Open Assisticket and click **Use the journey open on GWR**. Check the journey summary.
+5. Click **Try the after-booking Yes / No prompt** and close the extension popup. A clearly labelled demo prompt appears on the GWR page.
+6. Choose **Yes, use my saved needs** to send to the local simulator, or **No, thanks** to skip. Neither action creates a real assistance booking.
+7. A successful Yes shows a DEMO reference and says no real assistance was booked. Reopening the same offer does not create another demo request.
+
+Manual editing, exports and the original simulation remain under **Journey details and test tools**. The on-page prompt runs independently of the popup. Submission is handled by the extension background worker, so closing the popup does not discard the user's decision.
+
+A local ledger retains up to 50 test fingerprints/statuses/references, without storing the raw journey or access notes. Concurrent decisions are serialised; pending or uncertain requests are not blindly retried. This is demonstration persistence, not a production guarantee of idempotency.
 
 ## Simulate connecting an existing account
 
@@ -51,7 +69,7 @@ npm test
 
 For the standalone UI, run `python3 -m http.server 8000` here and open `http://localhost:8000/extension/`. **Try an example** loads an invented itinerary for UI testing. Real page capture requires the installed extension.
 
-Twenty-one Node tests pass, including seven new account-simulation checks. The original fourteen checks cover: the original seven core checks plus seven GWR adapter checks using the actual observed two-train itinerary, intermediate stops, unsupported formats, missing data and ambiguous dates. Browser inspection verified GWR's selectors and data; the installed extension's capture path still needs a manual Chrome smoke test. No end-to-end booking has been tested.
+Thirty Node tests pass, including account-simulation and booking-lifecycle checks. The original fourteen checks cover: the original seven core checks plus seven GWR adapter checks using the actual observed two-train itinerary, intermediate stops, unsupported formats, missing data and ambiguous dates. Browser inspection verified GWR's selectors and data; the installed extension's capture path still needs a manual Chrome smoke test. No end-to-end booking has been tested.
 
 A Playwright UI smoke script is included at `tests/browser.cjs`. It could not run in the build environment because Chromium was absent. Locally, install Playwright (`npm install --no-save playwright`, then `npx playwright install chromium`), start the demo server and run `node tests/browser.cjs`. It checks the demo UI, not extension capture.
 
@@ -62,7 +80,7 @@ A Playwright UI smoke script is included at `tests/browser.cjs`. It could not ru
 - One passenger per draft. Add returns and additional journeys separately. Open returns need a specific train.
 - No station-code/service-ID mapping, timetable validation, seat or wheelchair-space reservation, or connection-accessibility assessment. An eight-minute connection in GWR results is not a guarantee that it meets your assistance needs.
 - Assistance choices and profiles are examples, not verified API codes or real account data. Submission is simulated and duplicate protection lasts only for the popup session.
-- No account credentials, telemetry or network requests. Permissions are `activeTab`, `scripting` and `storage`; local storage holds only a fictional demo profile ID. Capture reads visible route tables and optionally selected text, rather than the entire checkout page. Extension CSP blocks network connections.
+- No account credentials, telemetry or network requests. Permissions are `activeTab`, `scripting` and `storage`; local storage holds a fictional demo profile ID and up to 50 hashed demo-request fingerprints with statuses/references (no raw journeys or access notes). Capture reads visible route tables and optionally selected text, rather than the entire checkout page. Extension CSP blocks network connections.
 - The optional pasted-text parser still supports labelled From/To/Departure/Arrival blocks only, with YYYY-MM-DD HH:mm times and a blank line between legs.
 
 ## Real booking integration

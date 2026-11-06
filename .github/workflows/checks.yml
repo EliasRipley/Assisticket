@@ -15,4 +15,7 @@ jobs:
       - run: node --check extension/core.js
       - run: node --check extension/gwr.js
       - run: node --check extension/account.js
+      - run: node --check extension/booking-flow.js
+      - run: node --check extension/background.js
+      - run: node --check extension/prompt.js
       - run: python3 -m json.tool extension/manifest.json > /dev/null

@@ -5,6 +5,7 @@ const assert=require('node:assert/strict');
  const page=await browser.newPage({viewport:{width:850,height:1100}});
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto(process.env.PROTOTYPE_URL || 'http://127.0.0.1:8000/extension/');
+ await page.getByText('Journey details and test tools',{exact:true}).click();
  await page.getByRole('button',{name:'Connect demo account',exact:true}).click();
  await page.getByLabel('Allow the demo to use this sample profile').check();
  await page.getByRole('button',{name:'Confirm demo connection',exact:true}).click();

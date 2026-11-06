@@ -13,6 +13,7 @@ output = Path(sys.argv[1]).resolve() if len(sys.argv)>1 else root / 'dist' / f'a
 output.parent.mkdir(parents=True, exist_ok=True)
 manifest = json.loads((source / 'manifest.json').read_text())
 manifest['name'] = 'Assisticket — Android test'
+manifest['background'] = {'scripts': ['background.js'], 'type': 'module'}
 manifest['browser_specific_settings'] = {
     'gecko': {'id': 'assisticket@eliasripley.github.io', 'strict_min_version': '142.0', 'data_collection_permissions': {'required': ['none']}},
     'gecko_android': {'strict_min_version': '142.0'}

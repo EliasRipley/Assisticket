@@ -1,3 +1,5 @@
+import {makeDemoConfirmation} from './booking-flow.js';
+import {showDemoBookingPrompt} from './prompt.js';
 import {DemoAccount,getDemoProfile,profileNeedsForJourney,demoAccountMetadata} from './account.js';
 import {captureGwrDocument,schedulesToLegs,dateFromGwrCalendar} from './gwr.js';
 import {isGwrUrl,parseLabelledJourney,validateRequest,DemoGateway} from './core.js';
@@ -8,7 +10,12 @@ let needsCustomised = false;
 let capturedForDateCorrection = null;
 const extensionApi = globalThis.browser ?? globalThis.chrome;
 if (extensionApi?.runtime?.id) document.body.classList.add('extension');
-function invalidate() { $('reviewed').checked=false; $('result').textContent=''; $('errors').textContent=''; }
+function invalidate() { $('reviewed').checked=false; $('result').textContent=''; $('errors').textContent=''; updateJourneySummary(); }
+function updateJourneySummary() {
+  const legs=readLegs();
+  $('journey-summary').textContent=legs.length && legs[0].from && legs.at(-1).to ? `${legs[0].from} → ${legs.at(-1).to} · ${legs[0].departure.replace('T',' at ')} · ${legs.length} train(s)` : 'No journey captured yet.';
+}
+
 function addLeg(value={}) {
   const element=document.createElement('div'); element.className='leg';
   const head=document.createElement('div'); head.className='leg-header';
@@ -89,6 +96,7 @@ function refreshProfileNeeds(force=false) {
 }
 function renderAccount() {
   const profile=account.profile;
+  $('ready-status').textContent=profile ? 'Your demo profile is connected. Capture a journey to try the one-click offer.' : 'Connect an account above to reuse your saved needs.';
   $('connected-account').hidden=!profile;
   $('account-picker').hidden=!!profile;
   $('connect-consent').hidden=true;
@@ -132,3 +140,23 @@ if(extensionApi?.storage?.local) {
     if(!account.profile && saved.demoProfileId){account.restore(saved.demoProfileId);renderAccount();refreshProfileNeeds();}
   } catch {$('account-status').textContent='Saved demo selection unavailable. You can connect a sample account below.';}
 }
+
+$('quick-capture').addEventListener('click',()=>{
+  $('flow-status').textContent='Capturing the open GWR Route details…';
+  $('capture').click();
+});
+$('preview-offer').addEventListener('click',async()=>{
+  try {
+    const request=readRequest();
+    if(!request.account)throw Error('Connect a demo account first.');
+    const errors=validateRequest(request);if(errors.length)throw Error(errors.join(' '));
+    if(!extensionApi?.scripting)throw Error('Open this installed extension on GWR to preview the offer.');
+    const [tab]=await extensionApi.tabs.query({active:true,currentWindow:true});
+    if(!isGwrUrl(tab?.url))throw Error('Return to the GWR page for this journey first.');
+    const confirmation=makeDemoConfirmation(request);
+    await extensionApi.scripting.executeScript({target:{tabId:tab.id},func:showDemoBookingPrompt,args:[confirmation]});
+    $('flow-status').textContent='Preview opened on GWR. Close this popup to choose Yes or No. No ticket purchase or real assistance request is made.';
+  } catch(error){$('flow-status').textContent=error.message;}
+});
+
+new MutationObserver(()=>{$('flow-status').textContent=$('capture-status').textContent;}).observe($('capture-status'),{childList:true,subtree:true,characterData:true});
