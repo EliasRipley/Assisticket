@@ -1,9 +1,22 @@
 {
   "manifest_version": 3,
-  "name": "Assisticket — GWR assistance prototype",
-  "version": "0.1.0",
+  "name": "Assisticket \u2014 GWR assistance prototype",
+  "version": "0.6.0",
   "description": "Capture a GWR itinerary and review an assistance request. Prototype only; no live booking.",
-  "permissions": ["activeTab", "scripting"],
-  "action": {"default_popup": "index.html", "default_title": "Review journey assistance"},
-  "content_security_policy": {"extension_pages": "script-src 'self'; object-src 'none'; connect-src 'none'"}
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage"
+  ],
+  "action": {
+    "default_popup": "index.html",
+    "default_title": "Review journey assistance"
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'none'; connect-src 'none'"
+  },
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  }
 }

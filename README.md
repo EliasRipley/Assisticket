@@ -1,49 +1,94 @@
 # Assisticket — GWR assistance prototype
 
-An installable Manifest V3 Chrome extension and standalone browser demo. Independent project, not affiliated with GWR, RDG or Transreport.
+Capture real train legs from GWR's public **Route details** screen and review an assistance draft. No ticket purchase is needed to test extraction. Independent project, not affiliated with GWR, RDG or Transreport.
 
-**This version never books assistance.** It does not connect to an account or call an API. It captures GWR page text on demand, lets you enter and review each train, validates dates and ordering, and simulates a request. Use the official Passenger Assistance service for actual travel.
+**This version never books assistance.** No real account connection or live API calls. Use the official Passenger Assistance service for actual travel.
 
-## Install in Chrome
+## One-click booking flow — version 0.6.0
 
-1. Unzip the project.
-2. Open `chrome://extensions`, enable Developer mode, click **Load unpacked**.
-3. Select the `extension` folder containing `manifest.json`.
-4. Open your GWR confirmation page, click the extension icon, then **Capture GWR page text**. Selecting just the journey text first avoids capturing unrelated details.
-5. Enter and review each train and assistance choice, tick the review checkbox, then simulate.
+The intended live experience is: install → connect Passenger Assistance once → buy a ticket normally → see “Use your Passenger Assistance?” → Yes sends the purchased itinerary with saved needs, while No dismisses it. Request received and assistance confirmed must remain separate states.
 
-The popup clears when closed. Export a reviewed draft if you want to keep it; the JSON contains journey and assistance details. Exported files are not encrypted.
+The new **demo** lets you test the account, prompt, Yes/No decision and submission lifecycle with a real GWR search itinerary. It does not detect a completed purchase. It never treats a search result as a purchased ticket and never submits real assistance. Real account linking and automatic confirmation-page detection remain disabled.
 
-## Try without installing
+1. Install the latest package. For Android Nightly, use the Android build; for desktop Chrome, unzip the Chrome build and load it unpacked.
+2. Connect a fictional sample account once at the top of Assisticket. It is remembered locally.
+3. Search a future GWR journey and open Route details through the Changes column.
+4. Open Assisticket and click **Use the journey open on GWR**. Check the journey summary.
+5. Click **Try the after-booking Yes / No prompt** and close the extension popup. A clearly labelled demo prompt appears on the GWR page.
+6. Choose **Yes, use my saved needs** to send to the local simulator, or **No, thanks** to skip. Neither action creates a real assistance booking.
+7. A successful Yes shows a DEMO reference and says no real assistance was booked. Reopening the same offer does not create another demo request.
 
-From this directory run `python3 -m http.server 8000`, then open `http://localhost:8000/extension/`. Use **Try an example**; page capture only works in the extension. The example is invented, not a timetable result. Run `npm test` for the core validation suite. No install/build step or third-party runtime dependencies.
+Manual editing, exports and the original simulation remain under **Journey details and test tools**. The on-page prompt runs independently of the popup. Submission is handled by the extension background worker, so closing the popup does not discard the user's decision.
 
-## Honest current limits
+A local ledger retains up to 50 test fingerprints/statuses/references, without storing the raw journey or access notes. Concurrent decisions are serialised; pending or uncertain requests are not blindly retried. This is demonstration persistence, not a production guarantee of idempotency.
 
-- GWR's live checkout and confirmation DOM has not been inspected or tested. No claim of automatic real-world itinerary extraction. Page capture provides a source to review alongside manual fields.
-- The optional parser recognises only complete labelled `From`, `To`, `Departure`, `Arrival` blocks using YYYY-MM-DD HH:mm. A blank line separates legs. It deliberately does not guess trains from arbitrary booking text.
-- Only HTTPS gwr.com and its subdomains are accepted for capture. If checkout uses a different host it needs explicit verification and support.
-- One passenger per draft; connections and returns entered as additional legs. Open returns need specific trains. No timetable, station-code, connection feasibility, seat or wheelchair-space validation.
-- UK local times are converted with Europe/London rules; ambiguous/nonexistent clock-change times are rejected. Departures within two hours point users to the official service.
-- Simulation duplicate detection is session-only and includes assistance changes. It is not production idempotency.
-- No account identifiers, credentials, persistent storage, telemetry, external libraries or network requests. `activeTab` and `scripting` permissions only. Page text is rendered as plain text. Extension CSP blocks network connections.
-- Popup closure loses the draft; automatic detection, account linking, booking updates, cancellation and confirmation tracking remain future work.
+## Simulate connecting an existing account
 
-## Integration gate / next engineering work
+Open Assisticket → **Connect demo account**, choose Alex (wheelchair support) or Sam (station guidance), review the fictional profile permission screen and confirm. No real Passenger Assistance account, password or API is used. The screen stays labelled as a demo.
 
-Published RDG API documentation: https://www.rspaccreditation.org/publicDocumentationAPI.php?action=viewAPIVersion&apiVersionID=13
+Saved assistance defaults fill automatically as a GWR journey is captured. Train-change assistance is included for consecutive connecting trains only. You can adjust choices for this trip or restore the saved demo needs. The draft export labels the account as simulated and identifies whether the choices were customised. No claim is made that the real API returns the full profile or automatically carries its needs into a booking.
 
-Access must be requested and assessed through RDG. Public documentation describes profile lookup and creation/cancellation endpoints, but does not establish third-party delegated passenger login for this extension. Determine eligibility, consent/authentication, commercial terms, sandbox access and permitted status retrieval with RDG/Transreport before implementing an adapter. Do not embed partner API secrets in an extension or invent an OAuth flow.
+Only the fixed fictional profile ID is remembered locally using the extension storage permission. Journey details and extra notes remain popup-only. Disconnect removes the saved demo selection and clears its assistance defaults while preserving the journey.
 
-The published API does not validate journey details. A production integration must map verified stations/service identifiers, assistance reference codes and full itinerary; securely authenticate authorised passengers; prevent duplicates across retries; recover ambiguous submission results; distinguish submission from operator confirmation; and handle ticket changes/cancellation. Cancellation restrictions also need checking against the agreed integration.
+## Android testing
 
-To improve the GWR adapter, inspect a real confirmation layout with the traveller's permission and add sanitised fixtures (no names, booking references or payment data). Test direct trains, connections, overnight travel, return journeys, multiple passengers and the operator's current checkout host. No ticket purchase is needed for initial fixture work if the traveller already has a confirmation.
+See [ANDROID.md](ANDROID.md) for the Firefox Nightly test-build installation and usage steps. Chrome on Android cannot run this extension. Build the unsigned Android ZIP with `python3 scripts/package-android.py`. This is an early device-test build, not a verified Android release.
 
-Official consumer service: https://booking.passengerassistance.com/
-Chrome API reference: https://developer.chrome.com/docs/extensions/reference/api/scripting
+## Try with real GWR data in Chrome
 
-## Verification for this release
+1. Download or clone this repository.
+2. Open `chrome://extensions`, enable Developer mode, click **Load unpacked**, and select the `extension` folder.
+3. Visit https://www.gwr.com/ and search a journey, for example London Paddington to Bristol Temple Meads. Stop at the search results.
+4. Click the number in the result's **Changes** column to open **Route details**. Zero opens a direct train; one opens a connecting itinerary.
+5. Open Assisticket. It reads the full selected outward date from GWR’s calendar automatically, including the year.
+6. Click **Capture GWR route details**. Review the imported date, stations, departure/arrival times, train operators and every connection. The calendar may open briefly during capture; no travel date is changed.
+7. Choose assistance, tick the review checkbox and simulate. No request is sent. You can also export a reviewed JSON draft.
 
-Seven Node tests pass for host restrictions, UK time conversion and DST rejection, overnight journeys, invalid requests, conservative parsing, and simulation duplicate handling. JavaScript syntax and manifest JSON were checked.
+Reload the extension in `chrome://extensions` after pulling updates. Its popup clears when closed; an exported draft contains journey and assistance information and is not encrypted.
 
-A Playwright browser smoke script is included at `tests/browser.cjs`, but could not run in the build environment because no Chromium executable was installed. Chrome installation and actual GWR capture remain unverified. To run locally, install Playwright (`npm install --no-save playwright` then `npx playwright install chromium`), start the demo server as above, and run `node tests/browser.cjs`. This checks the demo UI only; real Chrome extension capture needs a separate manual check.
+## What has actually been observed
+
+On 6 November 2026, the public GWR search-results UI returned this itinerary for that date:
+
+| Operator | From | Departure | To | Arrival |
+| --- | --- | --- | --- | --- |
+| Great Western Railway | London Paddington | 11:48 | Bristol Parkway | 13:02 |
+| CrossCountry | Bristol Parkway | 13:10 | Bristol Temple Meads | 13:21 |
+
+The rendered Route details tables and their column order were inspected directly in a browser, without an account, ticket purchase or assistance request. The observed data is saved in `tests/fixtures/gwr-route-2026-11-06.json` with source and context. It is a historical fixture, not a promise that the same services run on another day.
+
+The adapter reads visible `table[aria-label="journey schedule"]` elements, verifies Arrival/Departure column order, extracts the first and last station of each train and preserves operators. Intermediate calling points are not treated as separate trains. It refuses missing endpoints, changed columns, unsupported transfers and times that cross midnight; those need manual entry in this version. It does not infer purchase or assistance confirmation from a search result.
+
+## Run and test
+
+No build or dependency installation is required for the extension or core tests:
+
+```sh
+npm test
+```
+
+For the standalone UI, run `python3 -m http.server 8000` here and open `http://localhost:8000/extension/`. **Try an example** loads an invented itinerary for UI testing. Real page capture requires the installed extension.
+
+Thirty Node tests pass, including account-simulation and booking-lifecycle checks. The original fourteen checks cover: the original seven core checks plus seven GWR adapter checks using the actual observed two-train itinerary, intermediate stops, unsupported formats, missing data and ambiguous dates. Browser inspection verified GWR's selectors and data; the installed extension's capture path still needs a manual Chrome smoke test. No end-to-end booking has been tested.
+
+A Playwright UI smoke script is included at `tests/browser.cjs`. It could not run in the build environment because Chromium was absent. Locally, install Playwright (`npm install --no-save playwright`, then `npx playwright install chromium`), start the demo server and run `node tests/browser.cjs`. It checks the demo UI, not extension capture.
+
+## Current limits
+
+- Supports the observed GWR search-results Route details layout only; checkout and purchase-confirmation pages are not yet supported. Keep Route details open while capturing.
+- Automatic date capture currently supports outward results whose endpoints match the search. It opens GWR’s calendar without selecting a day, reads the selected full date and checks it against the displayed weekday/day/month. If metadata is missing or disagrees, a date correction option appears. Return-date capture remains unsupported. Import refuses times crossing midnight; manually entered legs support separate dates and UK daylight-saving checks.
+- One passenger per draft. Add returns and additional journeys separately. Open returns need a specific train.
+- No station-code/service-ID mapping, timetable validation, seat or wheelchair-space reservation, or connection-accessibility assessment. An eight-minute connection in GWR results is not a guarantee that it meets your assistance needs.
+- Assistance choices and profiles are examples, not verified API codes or real account data. Submission is simulated and duplicate protection lasts only for the popup session.
+- No account credentials, telemetry or network requests. Permissions are `activeTab`, `scripting` and `storage`; local storage holds a fictional demo profile ID and up to 50 hashed demo-request fingerprints with statuses/references (no raw journeys or access notes). Capture reads visible route tables and optionally selected text, rather than the entire checkout page. Extension CSP blocks network connections.
+- The optional pasted-text parser still supports labelled From/To/Departure/Arrival blocks only, with YYYY-MM-DD HH:mm times and a blank line between legs.
+
+## Real booking integration
+
+RDG access must be requested and assessed. Ask RDG/Transreport about eligibility, sandbox/test profiles, passenger consent and authentication, commercial terms and status retrieval before implementing the booking adapter. A normal passenger account does not itself grant developer API access. Do not embed partner secrets in an extension or invent an OAuth flow.
+
+The published API does not validate journey details. Production needs verified station/service identifiers, assistance reference codes, authorised profile access, durable duplicate protection, recovery from ambiguous submissions, operator confirmation tracking and ticket-change/cancellation handling.
+
+- RDG API: https://www.rspaccreditation.org/publicDocumentationAPI.php?action=viewAPIVersion&apiVersionID=13
+- Official consumer service: https://booking.passengerassistance.com/
+- Chrome scripting: https://developer.chrome.com/docs/extensions/reference/api/scripting

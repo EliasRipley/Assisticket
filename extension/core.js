@@ -42,7 +42,7 @@ export function parseLabelledJourney(text) {
   });
 }
 export function requestKey(request) {
-  return JSON.stringify({legs:request.legs.map(l=>({from:l.from.trim().toLowerCase(),to:l.to.trim().toLowerCase(),departure:l.departure,arrival:l.arrival})),needs:[...request.needs].sort(),notes:request.notes.trim()});
+  return JSON.stringify({profileId:request.account?.profileId || null,legs:request.legs.map(l=>({from:l.from.trim().toLowerCase(),to:l.to.trim().toLowerCase(),departure:l.departure,arrival:l.arrival})),needs:[...request.needs].sort(),notes:request.notes.trim()});
 }
 export class DemoGateway {
   #seen = new Set();
