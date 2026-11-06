@@ -4,6 +4,10 @@ Capture real train legs from GWR's public **Route details** screen and review an
 
 **This version never books assistance.** No account connection or live API calls. Use the official Passenger Assistance service for actual travel.
 
+## Android testing
+
+See [ANDROID.md](ANDROID.md) for the Firefox Nightly test-build installation and usage steps. Chrome on Android cannot run this extension. Build the unsigned Android ZIP with `python3 scripts/package-android.py`. This is an early device-test build, not a verified Android release.
+
 ## Try with real GWR data in Chrome
 
 1. Download or clone this repository.

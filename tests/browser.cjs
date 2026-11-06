@@ -19,7 +19,7 @@ const assert=require('node:assert/strict');
  await page.getByRole('button',{name:'Export draft JSON'}).click();
  const download=await downloadEvent;assert.equal(download.suggestedFilename(),'assistance-draft.json');
  await page.getByRole('button',{name:'Capture GWR route details'}).click();
- assert.match(await page.locator('#capture-status').innerText(),/installed Chrome extension/);
+ assert.match(await page.locator('#capture-status').innerText(),/installed browser extension/);
  if (process.env.SCREENSHOT_PATH) await page.screenshot({path:process.env.SCREENSHOT_PATH,fullPage:true});
  assert.deepEqual(errors,[]);
  await browser.close();console.log('Browser smoke check passed: example, review, simulation, duplicate, edit invalidation, export, capture fallback.');

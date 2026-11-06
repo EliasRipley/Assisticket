@@ -2,7 +2,8 @@ import {captureGwrDocument,schedulesToLegs} from './gwr.js';
 import {isGwrUrl,parseLabelledJourney,validateRequest,DemoGateway} from './core.js';
 const $ = id => document.getElementById(id);
 const gateway = new DemoGateway();
-if (globalThis.chrome?.runtime?.id) document.body.classList.add('extension');
+const extensionApi = globalThis.browser ?? globalThis.chrome;
+if (extensionApi?.runtime?.id) document.body.classList.add('extension');
 function invalidate() { $('reviewed').checked=false; $('result').textContent=''; $('errors').textContent=''; }
 function addLeg(value={}) {
   const element=document.createElement('div'); element.className='leg';
@@ -38,10 +39,10 @@ $('parse').addEventListener('click',()=>{
 });
 $('capture').addEventListener('click',async()=>{
   try {
-    if(!globalThis.chrome?.scripting)throw Error('Page capture works inside the installed Chrome extension. Here, paste journey text or try the example.');
-    const [tab]=await chrome.tabs.query({active:true,currentWindow:true});
+    if(!extensionApi?.scripting)throw Error('Page capture works inside the installed browser extension. Here, paste journey text or try the example.');
+    const [tab]=await extensionApi.tabs.query({active:true,currentWindow:true});
     if(!isGwrUrl(tab?.url))throw Error('Open GWR search results and expand Route details first. Other booking hosts are not supported yet.');
-    const [{result}]=await chrome.scripting.executeScript({target:{tabId:tab.id},func:captureGwrDocument});
+    const [{result}]=await extensionApi.scripting.executeScript({target:{tabId:tab.id},func:captureGwrDocument});
     if(!isGwrUrl(result.url))throw Error('The page changed during capture. Return to GWR and try again.');
     if(result.schedules.length) {
       const legs=schedulesToLegs(result.schedules,$('journey-date').value);
