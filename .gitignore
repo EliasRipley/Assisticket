@@ -1,0 +1,6 @@
+node_modules/
+.DS_Store
+*.zip
+playwright-report/
+test-results/
+assistance-draft.json

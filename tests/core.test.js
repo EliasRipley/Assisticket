@@ -1,0 +1,12 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {isGwrUrl,ukInstant,validateRequest,parseLabelledJourney,DemoGateway} from '../extension/core.js';
+const now=Date.parse('2026-11-06T09:00Z');
+const valid=()=>({legs:[{from:'London Paddington',to:'Bristol Temple Meads',departure:'2026-12-01T10:00',arrival:'2026-12-01T11:40'}],needs:['ramp'],notes:''});
+test('host matching rejects impersonation and non-HTTPS',()=>{assert.ok(isGwrUrl('https://tickets.gwr.com/order'));for(const u of ['https://gwr.com.evil.test','http://gwr.com','https://evilgwr.com','garbage'])assert.equal(isGwrUrl(u),false);});
+test('UK summer and winter conversion',()=>{assert.equal(ukInstant('2026-07-01T10:00'),Date.parse('2026-07-01T09:00Z'));assert.equal(ukInstant('2026-12-01T10:00'),Date.parse('2026-12-01T10:00Z'));});
+test('clock change ambiguity and invalid calendar values rejected',()=>{for(const value of ['2026-03-29T01:30','2026-10-25T01:30','2026-02-30T10:00',''])assert.throws(()=>ukInstant(value));});
+test('valid request and overnight journey pass',()=>{assert.deepEqual(validateRequest(valid(),now),[]);const r=valid();r.legs[0].departure='2026-12-01T23:00';r.legs[0].arrival='2026-12-02T01:00';assert.deepEqual(validateRequest(r,now),[]);});
+test('missing needs, reverse times, imminent departures and overlapping legs rejected',()=>{const r=valid();r.needs=[];assert.ok(validateRequest(r,now).length);r.needs=['ramp'];r.legs[0].arrival='2026-12-01T09:00';assert.ok(validateRequest(r,now).length);r.legs[0].departure='2026-11-06T10:00';assert.ok(validateRequest(r,now).some(e=>e.includes('two hours')));const overlap=valid();overlap.legs.push({...overlap.legs[0]});assert.ok(validateRequest(overlap,now).some(e=>e.includes('overlaps')));});
+test('parser does not invent trains from arbitrary or incomplete text',()=>{assert.deepEqual(parseLabelledJourney('Your booking: Paddington 10:00 Bristol 11:40'),[]);assert.deepEqual(parseLabelledJourney('From: London\nTo: Bristol'),[]);const text='From: London Paddington\nTo: Bristol Temple Meads\nDeparture: 2026-12-01 10:00\nArrival: 2026-12-01 11:40';assert.deepEqual(parseLabelledJourney(text),valid().legs);assert.equal(parseLabelledJourney(text+'\n\n'+text).length,2);});
+test('simulation flags duplicates without implying confirmation',()=>{const g=new DemoGateway();assert.equal(g.submit(valid()).status,'simulated-only');assert.equal(g.submit(valid()).status,'duplicate-demo');const r=valid();r.legs[0].departure='2026-12-01T10:05';assert.equal(g.submit(r).status,'simulated-only');});

@@ -1,0 +1,26 @@
+const {chromium}=process.env.CODEX_PRIMARY_RUNTIME_NODE_MODULES ? require(process.env.CODEX_PRIMARY_RUNTIME_NODE_MODULES+'/playwright') : require('playwright');
+const assert=require('node:assert/strict');
+(async()=>{
+ const browser=await chromium.launch({headless:true});
+ const page=await browser.newPage({viewport:{width:850,height:1100}});
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto(process.env.PROTOTYPE_URL || 'http://127.0.0.1:8000/extension/');
+ await page.getByRole('button',{name:'Try an example'}).click();
+ await page.getByLabel('Boarding ramp',{exact:true}).check();
+ await page.getByLabel('I have checked', {exact:false}).check();
+ await page.getByRole('button',{name:'Simulate assistance request'}).click();
+ await page.waitForFunction(()=>document.getElementById('result').textContent.includes('Simulation complete'));
+ await page.getByRole('button',{name:'Simulate assistance request'}).click();
+ assert.match(await page.locator('#result').innerText(),/Already simulated/);
+ await page.getByLabel('Anything else staff should know?',{exact:false}).fill('Help at both ends');
+ assert.equal(await page.locator('#reviewed').isChecked(),false);
+ await page.getByLabel('I have checked', {exact:false}).check();
+ const downloadEvent=page.waitForEvent('download');
+ await page.getByRole('button',{name:'Export draft JSON'}).click();
+ const download=await downloadEvent;assert.equal(download.suggestedFilename(),'assistance-draft.json');
+ await page.getByRole('button',{name:'Capture GWR page text'}).click();
+ assert.match(await page.locator('#capture-status').innerText(),/installed Chrome extension/);
+ if (process.env.SCREENSHOT_PATH) await page.screenshot({path:process.env.SCREENSHOT_PATH,fullPage:true});
+ assert.deepEqual(errors,[]);
+ await browser.close();console.log('Browser smoke check passed: example, review, simulation, duplicate, edit invalidation, export, capture fallback.');
+})().catch(e=>{console.error(e);process.exit(1)});
