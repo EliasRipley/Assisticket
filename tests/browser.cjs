@@ -18,7 +18,7 @@ const assert=require('node:assert/strict');
  const downloadEvent=page.waitForEvent('download');
  await page.getByRole('button',{name:'Export draft JSON'}).click();
  const download=await downloadEvent;assert.equal(download.suggestedFilename(),'assistance-draft.json');
- await page.getByRole('button',{name:'Capture GWR page text'}).click();
+ await page.getByRole('button',{name:'Capture GWR route details'}).click();
  assert.match(await page.locator('#capture-status').innerText(),/installed Chrome extension/);
  if (process.env.SCREENSHOT_PATH) await page.screenshot({path:process.env.SCREENSHOT_PATH,fullPage:true});
  assert.deepEqual(errors,[]);

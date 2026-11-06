@@ -1,3 +1,4 @@
+import {captureGwrDocument,schedulesToLegs} from './gwr.js';
 import {isGwrUrl,parseLabelledJourney,validateRequest,DemoGateway} from './core.js';
 const $ = id => document.getElementById(id);
 const gateway = new DemoGateway();
@@ -9,7 +10,7 @@ function addLeg(value={}) {
   const title=document.createElement('strong'); title.textContent='Journey leg'; head.append(title);
   const remove=document.createElement('button'); remove.type='button'; remove.className='quiet'; remove.textContent='Remove'; remove.addEventListener('click',()=>{element.remove();invalidate();}); head.append(remove);element.append(head);
   const grid=document.createElement('div');grid.className='grid';
-  for (const [name,label,type] of [['from','From station','text'],['to','To station','text'],['departure','Departs (UK time)','datetime-local'],['arrival','Arrives (UK time)','datetime-local']]) {
+  for (const [name,label,type] of [['from','From station','text'],['to','To station','text'],['operator','Train operator (optional for manual entry)','text'],['departure','Departs (UK time)','datetime-local'],['arrival','Arrives (UK time)','datetime-local']]) {
     const wrapper=document.createElement('label');wrapper.textContent=label;
     const input=document.createElement('input');input.type=type;input.dataset.field=name;input.value=value[name]||'';input.required=true;if(type==='text')input.maxLength=120;
     wrapper.append(input);grid.append(wrapper);
@@ -39,11 +40,17 @@ $('capture').addEventListener('click',async()=>{
   try {
     if(!globalThis.chrome?.scripting)throw Error('Page capture works inside the installed Chrome extension. Here, paste journey text or try the example.');
     const [tab]=await chrome.tabs.query({active:true,currentWindow:true});
-    if(!isGwrUrl(tab?.url))throw Error('Open your confirmation on an https://gwr.com page first. Other booking hosts are not supported yet.');
-    const [{result}]=await chrome.scripting.executeScript({target:{tabId:tab.id},func:()=>({url:location.href,text:(window.getSelection()?.toString()||document.body.innerText).slice(0,20000)})});
+    if(!isGwrUrl(tab?.url))throw Error('Open GWR search results and expand Route details first. Other booking hosts are not supported yet.');
+    const [{result}]=await chrome.scripting.executeScript({target:{tabId:tab.id},func:captureGwrDocument});
     if(!isGwrUrl(result.url))throw Error('The page changed during capture. Return to GWR and try again.');
-    $('source').value=result.text;$('source').closest('details').open=true;
-    $('capture-status').textContent='Text captured locally. It may contain personal details; remove anything unrelated. Enter each train below, or import if the text uses the supported labelled format.';
+    if(result.schedules.length) {
+      const legs=schedulesToLegs(result.schedules,$('journey-date').value);
+      $('legs').replaceChildren();legs.forEach(addLeg);
+      $('capture-status').textContent=`Imported ${legs.length} train leg(s) from GWR Route details. Date supplied by you: ${$('journey-date').value}. Check it matches GWR. This is a search result, not a purchased ticket or an assistance booking.`;
+    } else {
+      if(result.text){$('source').value=result.text;$('source').closest('details').open=true;}
+      throw Error('No visible GWR route tables found. Open Route details via the number in the Changes column, then capture again. Selected text, if any, was copied to the text box.');
+    }
   } catch(e){$('capture-status').textContent=e.message;}
 });
 $('request').addEventListener('submit',event=>{event.preventDefault();const request=readRequest();if(check(request))$('result').textContent=gateway.submit(request).message;});

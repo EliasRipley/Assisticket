@@ -1,0 +1,10 @@
+{
+  "source": "https://www.gwr.com/buy-train-tickets/ticket-search-results",
+  "observedOn": "2026-11-06",
+  "journeyDate": "2026-11-06",
+  "context": "Public search results, Route details opened for the 11:48 Paddington to Bristol Temple Meads option. No fare purchased, no account used. Values read from actual rendered journey schedule tables. Historical observation, not a current timetable guarantee.",
+  "schedules": [
+    {"headers":["Arrival","Departure"],"operator":"Great Western Railway","rows":[["","11:48","London Paddington"],["13:02","","Bristol Parkway"]]},
+    {"headers":["Arrival","Departure"],"operator":"CrossCountry","rows":[["","13:10","Bristol Parkway"],["13:21","","Bristol Temple Meads"]]}
+  ]
+}

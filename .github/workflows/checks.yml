@@ -13,4 +13,5 @@ jobs:
       - run: npm test
       - run: node --check extension/app.js
       - run: node --check extension/core.js
+      - run: node --check extension/gwr.js
       - run: python3 -m json.tool extension/manifest.json > /dev/null
