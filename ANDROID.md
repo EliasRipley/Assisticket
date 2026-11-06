@@ -5,11 +5,21 @@ This is an **unsigned Firefox Nightly extension test build**, not an APK and not
 ## Install once
 
 1. Install **Firefox Nightly for Developers**, published by **Mozilla**, from Google Play. Use the current version (the package requires Firefox 142 or newer).
-2. Download `assisticket-android-nightly-0.3.0.zip` onto your phone. **Keep it zipped**; do not extract it.
+2. Download `assisticket-android-nightly-0.5.0.zip` onto your phone. **Keep it zipped**; do not extract it.
 3. In Nightly, open `about:config` in the address bar. Search for `xpinstall.signatures.required` and set it to `false`. This permits unsigned add-ons in this test browser. It is not a setting you need to change in your normal browser. This reduces Nightly's add-on installation protection; only use it for this test and return it to `true` when finished. The unsigned test extension may stop working when signature checks are restored.
 4. Open Nightly's menu → **Settings → About Firefox Nightly** (the name can vary slightly by version). Tap the Firefox logo **five times quickly** to unlock the debug menu.
 5. Go back to Settings → **Install Extension from File**. Select the downloaded ZIP. Review the prompt and tap **Add**. If the picker hides the ZIP, change its file filter to all files. Do not extract or rename its internal files.
 6. Assisticket should now appear under the browser's **Extensions** menu. If installation fails, note the exact error and Nightly version. This package has not yet been tested on a physical Android phone.
+
+## Simulate an account connection
+
+1. Open Nightly → Extensions → Assisticket.
+2. Choose **Alex — wheelchair support demo** (or Sam for station guidance).
+3. Tap **Connect demo account**, tick **Allow the demo to use this sample profile**, then **Confirm demo connection**.
+4. The screen should say **Demo connected** and show the fictional saved needs. It never asks for a real email or password.
+5. Close the popup and return to GWR. The demo profile choice is remembered when you reopen Assisticket; you should not need to connect again.
+
+Only a fictional profile ID is saved locally, and no real account or API is contacted. You can disconnect at any time. This does not establish whether real Passenger Assistance offers delegated login or full profile access.
 
 ## Use real GWR data
 
@@ -17,9 +27,9 @@ This is an **unsigned Firefox Nightly extension test build**, not an APK and not
 2. Search a future journey. Paddington → Bristol Temple Meads is a useful first test. A departure at least two hours away allows the mock-submission validation to pass.
 3. On the results page, tap the number under **Changes** for one journey. It opens **Route details**: 0 is direct, 1 has a connection. If the mobile layout hides the column, try Nightly's **Desktop site** option.
 4. Leave Route details open. Open Nightly's **Extensions → Assisticket**.
-5. Tap **Capture GWR route details**. Version 0.4.0 reads the outward date automatically; use date correction only if it cannot read the calendar.
+5. Tap **Capture GWR route details**. Version 0.5.0 reads the outward date automatically; use date correction only if it cannot read the calendar.
 6. Check every imported train against GWR: stations, date, times and operator. For a connection, there should be one leg per train, including the change station on both legs.
-7. Choose assistance, tick the review checkbox and tap **Simulate assistance request**. It should explicitly say **no assistance was requested or booked**. You do not need to visit payment or sign in.
+7. Check the assistance filled from the demo profile. For Alex, boarding/ramp/station help should already be selected; changing-trains help should appear only for a connecting itinerary. Adjust if needed, tick the review checkbox and tap **Simulate assistance request**. It should explicitly say **no assistance was requested or booked**. You do not need to visit payment or sign in.
 
 The popup loses its draft when closed. **Export draft JSON** saves a reviewed copy if downloads work on your browser version; the file includes your assistance notes, so share only a sample with no personal details.
 

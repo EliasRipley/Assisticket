@@ -1,0 +1,12 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {DemoAccount,getDemoProfile,profileNeedsForJourney,demoAccountMetadata} from '../extension/account.js';
+import {DemoGateway} from '../extension/core.js';
+const direct=[{from:'Paddington',to:'Bristol',departure:'2026-11-27T12:30',arrival:'2026-11-27T14:03'}];
+test('demo connection requires consent and an approved fictional identity',()=>{const a=new DemoAccount();assert.throws(()=>a.connect('demo-alex',false));assert.throws(()=>a.connect('someone@real.test',true));assert.equal(a.profile,null);assert.equal(a.connect('demo-alex',true).id,'demo-alex');});
+test('saved profile cannot be mutated through an account response',()=>{const a=new DemoAccount();a.connect('demo-alex',true).savedNeeds.length=0;assert.ok(a.profile.savedNeeds.includes('ramp'));});
+test('restoration validates identity; disconnect removes the connection',()=>{const a=new DemoAccount();assert.equal(a.restore('demo-sam').id,'demo-sam');a.disconnect();assert.equal(a.profile,null);assert.equal(a.restore('unexpected'),null);});
+test('direct journey uses saved boarding/ramp/station needs without a train-change request',()=>{assert.deepEqual(profileNeedsForJourney(getDemoProfile('demo-alex'),direct),['boarding','ramp','station']);});
+test('consecutive connecting trains add profile preference for changing trains',()=>{const legs=[{...direct[0],to:'Parkway',arrival:'2026-11-27T13:02'},{from:'Parkway',to:'Bristol',departure:'2026-11-27T13:10',arrival:'2026-11-27T13:21'}];assert.ok(profileNeedsForJourney(getDemoProfile('demo-alex'),legs).includes('connection'));legs[1].departure='2026-11-28T13:10';assert.ok(!profileNeedsForJourney(getDemoProfile('demo-alex'),legs).includes('connection'));});
+test('exports explicitly identify fictional account and customised choices',()=>{assert.equal(demoAccountMetadata(getDemoProfile('demo-sam'),true).needsSource,'customised-demo-profile');assert.equal(demoAccountMetadata(getDemoProfile('demo-sam')).mode,'simulated');assert.equal(demoAccountMetadata(null),null);});
+test('duplicate detection distinguishes separate demo accounts',()=>{const g=new DemoGateway();const r={legs:direct,needs:['station'],notes:'',account:demoAccountMetadata(getDemoProfile('demo-sam'))};assert.equal(g.submit(r).status,'simulated-only');assert.equal(g.submit(r).status,'duplicate-demo');r.account=demoAccountMetadata(getDemoProfile('demo-alex'));assert.equal(g.submit(r).status,'simulated-only');});

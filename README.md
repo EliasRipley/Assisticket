@@ -4,6 +4,14 @@ Capture real train legs from GWR's public **Route details** screen and review an
 
 **This version never books assistance.** No account connection or live API calls. Use the official Passenger Assistance service for actual travel.
 
+## Simulate connecting an existing account
+
+Open Assisticket → **Connect demo account**, choose Alex (wheelchair support) or Sam (station guidance), review the fictional profile permission screen and confirm. No real Passenger Assistance account, password or API is used. The screen stays labelled as a demo.
+
+Saved assistance defaults fill automatically as a GWR journey is captured. Train-change assistance is included for consecutive connecting trains only. You can adjust choices for this trip or restore the saved demo needs. The draft export labels the account as simulated and identifies whether the choices were customised. No claim is made that the real API returns the full profile or automatically carries its needs into a booking.
+
+Only the fixed fictional profile ID is remembered locally using the extension storage permission. Journey details and extra notes remain popup-only. Disconnect removes the saved demo selection and clears its assistance defaults while preserving the journey.
+
 ## Android testing
 
 See [ANDROID.md](ANDROID.md) for the Firefox Nightly test-build installation and usage steps. Chrome on Android cannot run this extension. Build the unsigned Android ZIP with `python3 scripts/package-android.py`. This is an early device-test build, not a verified Android release.
@@ -43,7 +51,7 @@ npm test
 
 For the standalone UI, run `python3 -m http.server 8000` here and open `http://localhost:8000/extension/`. **Try an example** loads an invented itinerary for UI testing. Real page capture requires the installed extension.
 
-Fourteen Node tests pass: the original seven core checks plus seven GWR adapter checks using the actual observed two-train itinerary, intermediate stops, unsupported formats, missing data and ambiguous dates. Browser inspection verified GWR's selectors and data; the installed extension's capture path still needs a manual Chrome smoke test. No end-to-end booking has been tested.
+Twenty-one Node tests pass, including seven new account-simulation checks. The original fourteen checks cover: the original seven core checks plus seven GWR adapter checks using the actual observed two-train itinerary, intermediate stops, unsupported formats, missing data and ambiguous dates. Browser inspection verified GWR's selectors and data; the installed extension's capture path still needs a manual Chrome smoke test. No end-to-end booking has been tested.
 
 A Playwright UI smoke script is included at `tests/browser.cjs`. It could not run in the build environment because Chromium was absent. Locally, install Playwright (`npm install --no-save playwright`, then `npx playwright install chromium`), start the demo server and run `node tests/browser.cjs`. It checks the demo UI, not extension capture.
 
@@ -53,8 +61,8 @@ A Playwright UI smoke script is included at `tests/browser.cjs`. It could not ru
 - Automatic date capture currently supports outward results whose endpoints match the search. It opens GWR’s calendar without selecting a day, reads the selected full date and checks it against the displayed weekday/day/month. If metadata is missing or disagrees, a date correction option appears. Return-date capture remains unsupported. Import refuses times crossing midnight; manually entered legs support separate dates and UK daylight-saving checks.
 - One passenger per draft. Add returns and additional journeys separately. Open returns need a specific train.
 - No station-code/service-ID mapping, timetable validation, seat or wheelchair-space reservation, or connection-accessibility assessment. An eight-minute connection in GWR results is not a guarantee that it meets your assistance needs.
-- Assistance choices are examples, not verified API codes. Submission is simulated and duplicate protection lasts only for the popup session.
-- No account credentials, telemetry, persistent storage or network requests. Only `activeTab` and `scripting` permissions. Capture reads visible route tables and optionally selected text, rather than the entire checkout page. Extension CSP blocks network connections.
+- Assistance choices and profiles are examples, not verified API codes or real account data. Submission is simulated and duplicate protection lasts only for the popup session.
+- No account credentials, telemetry or network requests. Permissions are `activeTab`, `scripting` and `storage`; local storage holds only a fictional demo profile ID. Capture reads visible route tables and optionally selected text, rather than the entire checkout page. Extension CSP blocks network connections.
 - The optional pasted-text parser still supports labelled From/To/Departure/Arrival blocks only, with YYYY-MM-DD HH:mm times and a blank line between legs.
 
 ## Real booking integration

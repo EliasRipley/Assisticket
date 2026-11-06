@@ -1,7 +1,10 @@
+import {DemoAccount,getDemoProfile,profileNeedsForJourney,demoAccountMetadata} from './account.js';
 import {captureGwrDocument,schedulesToLegs,dateFromGwrCalendar} from './gwr.js';
 import {isGwrUrl,parseLabelledJourney,validateRequest,DemoGateway} from './core.js';
 const $ = id => document.getElementById(id);
 const gateway = new DemoGateway();
+const account = new DemoAccount();
+let needsCustomised = false;
 let capturedForDateCorrection = null;
 const extensionApi = globalThis.browser ?? globalThis.chrome;
 if (extensionApi?.runtime?.id) document.body.classList.add('extension');
@@ -10,24 +13,25 @@ function addLeg(value={}) {
   const element=document.createElement('div'); element.className='leg';
   const head=document.createElement('div'); head.className='leg-header';
   const title=document.createElement('strong'); title.textContent='Journey leg'; head.append(title);
-  const remove=document.createElement('button'); remove.type='button'; remove.className='quiet'; remove.textContent='Remove'; remove.addEventListener('click',()=>{element.remove();invalidate();}); head.append(remove);element.append(head);
+  const remove=document.createElement('button'); remove.type='button'; remove.className='quiet'; remove.textContent='Remove'; remove.addEventListener('click',()=>{element.remove();invalidate();refreshProfileNeeds();}); head.append(remove);element.append(head);
   const grid=document.createElement('div');grid.className='grid';
   for (const [name,label,type] of [['from','From station','text'],['to','To station','text'],['operator','Train operator (optional for manual entry)','text'],['departure','Departs (UK time)','datetime-local'],['arrival','Arrives (UK time)','datetime-local']]) {
     const wrapper=document.createElement('label');wrapper.textContent=label;
-    const input=document.createElement('input');input.type=type;input.dataset.field=name;input.value=value[name]||'';input.required=true;if(type==='text')input.maxLength=120;
+    const input=document.createElement('input');input.type=type;input.dataset.field=name;input.value=value[name]||'';input.required=name!=='operator';if(type==='text')input.maxLength=120;
     wrapper.append(input);grid.append(wrapper);
   }
-  element.append(grid);$('legs').append(element);invalidate();
+  element.append(grid);$('legs').append(element);invalidate();refreshProfileNeeds();
 }
+function readLegs() { return [...document.querySelectorAll('.leg')].map(el=>Object.fromEntries([...el.querySelectorAll('input')].map(i=>[i.dataset.field,i.value.trim()]))); }
 function readRequest() {
-  return {schemaVersion:1,mode:'draft-only',timezone:'Europe/London',legs:[...document.querySelectorAll('.leg')].map(el=>Object.fromEntries([...el.querySelectorAll('input')].map(i=>[i.dataset.field,i.value.trim()]))),needs:[...document.querySelectorAll('[name=need]:checked')].map(i=>i.value),notes:$('notes').value.trim()};
+  return {schemaVersion:2,account:demoAccountMetadata(account.profile,needsCustomised),mode:'draft-only',timezone:'Europe/London',legs:readLegs(),needs:[...document.querySelectorAll('[name=need]:checked')].map(i=>i.value),notes:[account.profile?.accessNotes,$('notes').value.trim()].filter(Boolean).join('\n')};
 }
 function check(request) {
   const errors=validateRequest(request);if(!$('reviewed').checked)errors.push('Confirm that you have reviewed the journey.');
   $('errors').replaceChildren(...errors.map(e=>{const p=document.createElement('p');p.textContent=e;return p;}));return !errors.length;
 }
 $('add').addEventListener('click',()=>addLeg());
-$('request').addEventListener('input',event=>{if(event.target.id!=='reviewed')invalidate();});
+$('request').addEventListener('input',event=>{if(event.target.name==='need')needsCustomised=true; if(event.target.id!=='reviewed'){invalidate();if(event.target.closest('#legs'))refreshProfileNeeds();}});
 $('demo').addEventListener('click',()=>{
   const d=new Date(Date.now()+7*86400000).toISOString().slice(0,10);
   $('legs').replaceChildren();addLeg({from:'London Paddington',to:'Bristol Temple Meads',departure:d+'T10:00',arrival:d+'T11:40'});
@@ -75,3 +79,56 @@ $('export').addEventListener('click',()=>{
   $('result').textContent='Draft exported. The file contains your journey and assistance details; exporting does not request assistance.';
 });
 addLeg();
+
+function refreshProfileNeeds(force=false) {
+  if(!account.profile || (needsCustomised && !force))return;
+  const defaults=profileNeedsForJourney(account.profile,readLegs());
+  document.querySelectorAll('[name=need]').forEach(input=>{input.checked=defaults.includes(input.value);});
+  needsCustomised=false;
+  $('needs-status').textContent='Filled from your fictional saved profile. Help changing trains is added only for a connecting itinerary. You can change these choices for this journey.';
+}
+function renderAccount() {
+  const profile=account.profile;
+  $('connected-account').hidden=!profile;
+  $('account-picker').hidden=!!profile;
+  $('connect-consent').hidden=true;
+  $('account-summary').textContent=profile ? `${profile.name} · ${profile.email}` : '';
+  $('saved-needs').textContent=profile ? profile.accessNotes : '';
+}
+$('connect-demo').addEventListener('click',()=>{
+  const profile=getDemoProfile($('demo-profile').value);
+  $('consent-profile').textContent=`${profile.name} (${profile.email})`;
+  $('allow-demo').checked=false;$('connect-consent').hidden=false;
+});
+$('cancel-connect').addEventListener('click',()=>{$('connect-consent').hidden=true;});
+$('confirm-connect').addEventListener('click',async()=>{
+  try {
+    account.connect($('demo-profile').value,$('allow-demo').checked);
+    renderAccount();invalidate();refreshProfileNeeds(true);
+    $('account-status').textContent='Demo account connected. No real account was accessed.';
+    if(extensionApi?.storage?.local) {
+      try { await extensionApi.storage.local.set({demoProfileId:account.profile.id}); }
+      catch { $('account-status').textContent+=' Could not remember it; this connection lasts for this popup only.'; }
+    }
+  } catch(e){$('account-status').textContent=e.message;}
+});
+$('disconnect').addEventListener('click',async()=>{
+  account.disconnect();needsCustomised=false;
+  document.querySelectorAll('[name=need]').forEach(input=>{input.checked=false;});
+  $('needs-status').textContent='Choose the assistance needed for this journey.';
+  invalidate();renderAccount();$('account-status').textContent='Demo account disconnected. Journey details kept.';
+  if(extensionApi?.storage?.local) {
+    try {await extensionApi.storage.local.remove('demoProfileId');}
+    catch {$('account-status').textContent+=' Could not clear the saved demo selection; it may return when you reopen.';}
+  }
+});
+$('reset-needs').addEventListener('click',()=>{invalidate();refreshProfileNeeds(true);});
+renderAccount();
+// Only a fixed fictional profile ID is remembered; no credentials or journey data.
+if(extensionApi?.storage?.local) {
+  try {
+    const saved=await extensionApi.storage.local.get('demoProfileId');
+    // Do not replace a connection the user made while storage was loading.
+    if(!account.profile && saved.demoProfileId){account.restore(saved.demoProfileId);renderAccount();refreshProfileNeeds();}
+  } catch {$('account-status').textContent='Saved demo selection unavailable. You can connect a sample account below.';}
+}
